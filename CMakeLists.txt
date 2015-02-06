@@ -3,7 +3,7 @@
 set(PROJECT_NAME "onlydreamsnow")
 
 cmake_minimum_required(VERSION 2.8.11)
-project(${PROJECT_NAME} C)
+project(${PROJECT_NAME})
 
 include(FindPkgConfig)
 include(CMakePackageConfigHelpers)
@@ -20,19 +20,21 @@ set(ONLYDREAMSNOW_VERSION
 set(CMAKE_INSTALL_BINDIR "bin")
 
 # C flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -Wall -Wextra")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -DDEBUG")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=gnu++11 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG -O3")
 
 # Source Code
 add_subdirectory(${ONLYDREAMSNOW_SRC})
 set(ONLYDREAMSNOW_SOURCE_FILES ${SOURCE_FILES})
 
 pkg_search_module(LIBOPENCV REQUIRED opencv)
+pkg_search_module(LIBCONFUSE REQUIRED libconfuse)
 
 # Build and link the executable
 add_executable(${ONLYDREAMSNOW_EXE} ${ONLYDREAMSNOW_SOURCE_FILES})
 target_link_libraries(${ONLYDREAMSNOW_EXE} ${LIBOPENCV_LIBRARIES})
+target_link_libraries(${ONLYDREAMSNOW_EXE} ${LIBCONFUSE_LIBRARIES})
 
 # Config File Settings
 set(ONLYDREAMSNOW_INSTALL_PREFIX      "${CMAKE_INSTALL_PREFIX}")
