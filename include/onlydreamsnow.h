@@ -19,6 +19,9 @@ using std::string;
 
 using namespace cv;
 
+
+#define FRAMES_SKIPPED 10 
+
 class OnlyDreamsNow
 {
 

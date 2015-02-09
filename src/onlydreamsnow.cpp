@@ -2,6 +2,7 @@
 #include <string>
 #include <syslog.h>
 #include <confuse.h>
+#include <unistd.h>
 
 #include "onlydreamsnow.h"
 
@@ -89,7 +90,8 @@ void OnlyDreamsNow::ReadCSV(const string& filename, vector<Mat>& images,
 	std::ifstream file(filename.c_str(), ifstream::in);
 	if (!file)
 	{
-		string error_message = "No valid input file was given, please check the given filename.";
+		string error_message = "No valid input file was given, "
+		                       "please check the given filename.";
 		CV_Error(CV_StsBadArg, error_message);
 	}
 	string line, path, classlabel;
@@ -106,16 +108,17 @@ void OnlyDreamsNow::ReadCSV(const string& filename, vector<Mat>& images,
 	}
 }
 
-
+/**
+ * @brief
+ *
+ * @return
+ */
 int
 OnlyDreamsNow::Run()
 {
-
-	int rv = -100;
-	// These vectors hold the images and corresponding labels:
+	int skip = 0;
 	vector<Mat> images;
 	vector<int> labels;
-	// Read in the data (fails if no valid input filename is given, but you'll get an error message):
 	try
 	{
 		ReadCSV(face_csv_path, images, labels);
@@ -125,40 +128,49 @@ OnlyDreamsNow::Run()
 		syslog(LOG_ERR, "Failed to open csv file.");
 		return -1;
 	}
-	// Get the height from the first image. We'll need this
-	// later in code to reshape the images to their original
-	// size AND we need to reshape incoming faces to this size:
+
 	int im_width = images[0].cols;
 	int im_height = images[0].rows;
-	// Create a FaceRecognizer and train it on the given images:
+
 	Ptr<FaceRecognizer> model = createFisherFaceRecognizer();
 	model->train(images, labels);
-	// That's it for learning the Face Recognition model. You now
-	// need to create the classifier for the task of Face Detection.
-	// We are going to use the haar cascade you have specified in the
-	// command line arguments:
-	//
+
 	CascadeClassifier haar_cascade;
 	haar_cascade.load(haar_xml_path);
-	// Get a handle to the Video device:
+
 	VideoCapture cap(device_id);
-	// Check if we can use this device at all:
 	if (!cap.isOpened())
 	{
 		syslog(LOG_ERR, "Failed to open capture device.");
 		return -2;
 	}
-	// Holds the current frame from the Video device:
-	Mat frame;
+
+	Mat frame, original;
+
 	for (;;)
 	{
-		cap >> frame;
-		Mat original = frame.clone();
+		if (!cap.grab())
+			continue;
+
+		if ((skip++ % FRAMES_SKIPPED) != 0) {
+			usleep(100);
+			continue;
+		}
+
+		if (!cap.retrieve(frame))
+			continue;
+
+		int prediction = -1;
+		double confidence = 0.0;
+
+		skip = 1;
+
+		original = frame.clone();
 		Mat gray;
 		cvtColor(original, gray, CV_BGR2GRAY);
 		vector< Rect_<int> > faces;
 		haar_cascade.detectMultiScale(gray, faces);
-		
+
 		for (size_t i = 0; i < faces.size(); i++)
 		{
 			Rect face_i = faces[i];
@@ -168,29 +180,24 @@ OnlyDreamsNow::Run()
 			cv::resize(face, face_resized,
 			           Size(im_width, im_height),
 			           1.0, 1.0, INTER_CUBIC);
-			
-			int prediction = model->predict(face_resized);
-			// And finally write all we've found out to the original image!
-			// First of all draw a green rectangle around the detected face:
+
+			model->predict(face_resized, prediction, confidence);
+			if (confidence > 1000.0f)
+				continue;
+
 			rectangle(original, face_i, CV_RGB(0, 255, 0), 1);
-			// Create the text we will annotate the box with:
-			string box_text = format("Prediction = %d", prediction);
-			// Calculate the position for annotated text (make sure we don't
-			// put illegal values in there):
+			string box_text = format("Prediction = %d Confidence = %lf",
+			                         prediction, confidence);
 			int pos_x = std::max(face_i.tl().x - 10, 0);
 			int pos_y = std::max(face_i.tl().y - 10, 0);
-			// And now put it into the image:
 			putText(original, box_text, Point(pos_x, pos_y),
 			        FONT_HERSHEY_PLAIN, 1.0, CV_RGB(0, 255, 0), 2.0);
 		}
-		// Show the result:
 		imshow("face_recognizer", original);
-		// And display it:
-		char key = (char) waitKey(20);
-		// Exit this loop on escape:
+		char key = (char) waitKey(5);
 		if (key == 27)
 			break;
 	}
 
-	return rv;
+	return 0;
 }
