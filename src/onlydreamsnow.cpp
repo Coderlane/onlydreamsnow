@@ -10,12 +10,14 @@ using std::string;
 
 OnlyDreamsNow::OnlyDreamsNow()
 {
-	loaded = false;
 }
 
 OnlyDreamsNow::~OnlyDreamsNow()
 {
-
+	if (launcher != NULL)
+	{
+		ml_dereference_launcher(launcher);
+	}
 }
 
 int
@@ -23,13 +25,19 @@ OnlyDreamsNow::Load(const string config_path)
 {
 	char *local_haar_xml_path = NULL;
 	char *local_face_csv_path = NULL;
-	int local_device_id = -1, rv = -100;
+	int rv = -100;
+	uint32_t launchers_count;
 	cfg_t *cfg = NULL;
+
 	cfg_opt_t opts[] =
 	{
 		CFG_SIMPLE_STR((char *)"haar_xml_path", &local_haar_xml_path),
 		CFG_SIMPLE_STR((char *)"face_csv_path", &local_face_csv_path),
-		CFG_SIMPLE_INT((char *)"device_id", &local_device_id),
+		CFG_SIMPLE_INT((char *)"camera_id", &camera_id),
+		CFG_SIMPLE_INT((char *)"launcher_id", &launcher_id),
+		CFG_SIMPLE_INT((char *)"diff", &diff),
+		CFG_SIMPLE_INT((char *)"fps", &fps),
+		CFG_SIMPLE_INT((char *)"max_difference", &max_difference),
 		CFG_END()
 	};
 
@@ -39,39 +47,61 @@ OnlyDreamsNow::Load(const string config_path)
 		return 1;
 	}
 
+	rv = ml_get_launcher_array(&launchers, &launchers_count);
+	if (rv != ML_OK)
+	{
+		if (rv != ML_NO_LAUNCHERS)
+		{
+			syslog(LOG_ERR, "Failed to get launcher array.");
+		}
+		else
+		{
+			syslog(LOG_ERR, "No launchers found.");
+		}
+		goto out;
+	}
+
 	cfg = cfg_init(opts, 0);
 	rv = cfg_parse(cfg, config_path.c_str());
 	if (rv != CFG_SUCCESS)
 	{
 		syslog(LOG_ERR, "Failed to read configuration file.");
-		rv = -1;
+		rv = -2;
 		goto out;
 	}
 
 	if (local_haar_xml_path == NULL)
 	{
 		syslog(LOG_ERR, "Failed to find haar_xml_path in config.");
-		rv = -2;
+		rv = -3;
 		goto out;
 	}
 
 	if (local_face_csv_path == NULL)
 	{
 		syslog(LOG_ERR, "Failed to find face_csv_path in config.");
-		rv = -3;
+		rv = -4;
 		goto out;
 	}
 
-	if (local_device_id == -1)
+	if (launcher_id < 0)
 	{
-		syslog(LOG_ERR, "Failed to find device_id in config.");
-		rv = -4;
+		syslog(LOG_ERR, "Invalid launcehr id.");
+		rv = -5;
+		goto out;
+	}
+
+	if (launchers_count < (uint32_t) launcher_id)
+	{
+		syslog(LOG_ERR, "Didn't find launcher.");
+		rv = -6;
 		goto out;
 	}
 
 	haar_xml_path = string(local_haar_xml_path);
 	face_csv_path = string(local_face_csv_path);
-	device_id = local_device_id;
+	launcher = launchers[launcher_id];
+	ml_reference_launcher(launcher);
 
 	loaded = true;
 	rv = 0;
@@ -84,8 +114,18 @@ out:
 }
 
 
-void OnlyDreamsNow::ReadCSV(const string& filename, vector<Mat>& images,
-                            vector<int>& labels, char separator)
+/**
+ * @brief Read a csv file from a specific format.
+ * Taken from OpenCV example.
+ *
+ * @param filename
+ * @param images
+ * @param labels
+ * @param separator
+ */
+void
+OnlyDreamsNow::ReadCSV(const string& filename, vector<Mat>& images,
+                       vector<int>& labels, char separator)
 {
 	std::ifstream file(filename.c_str(), ifstream::in);
 	if (!file)
@@ -94,6 +134,7 @@ void OnlyDreamsNow::ReadCSV(const string& filename, vector<Mat>& images,
 		                       "please check the given filename.";
 		CV_Error(CV_StsBadArg, error_message);
 	}
+
 	string line, path, classlabel;
 	while (getline(file, line))
 	{
@@ -116,7 +157,6 @@ void OnlyDreamsNow::ReadCSV(const string& filename, vector<Mat>& images,
 int
 OnlyDreamsNow::Run()
 {
-	int skip = 0;
 	vector<Mat> images;
 	vector<int> labels;
 	try
@@ -129,8 +169,8 @@ OnlyDreamsNow::Run()
 		return -1;
 	}
 
-	int im_width = images[0].cols;
-	int im_height = images[0].rows;
+	int face_width = images[0].cols;
+	int face_height = images[0].rows;
 
 	Ptr<FaceRecognizer> model = createFisherFaceRecognizer();
 	model->train(images, labels);
@@ -138,66 +178,186 @@ OnlyDreamsNow::Run()
 	CascadeClassifier haar_cascade;
 	haar_cascade.load(haar_xml_path);
 
-	VideoCapture cap(device_id);
+	VideoCapture cap(camera_id);
 	if (!cap.isOpened())
 	{
 		syslog(LOG_ERR, "Failed to open capture device.");
 		return -2;
 	}
 
-	Mat frame, original;
+	cap.set(CV_CAP_PROP_FPS, 2);
+
+	ResetLauncher();
 
 	for (;;)
 	{
+		int prediction = -1;
+		double confidence = 0.0;
+		Mat gray, frame, original;
+		vector< Rect_<int> > faces;
+
 		if (!cap.grab())
 			continue;
-
-		if ((skip++ % FRAMES_SKIPPED) != 0) {
-			usleep(100);
-			continue;
-		}
 
 		if (!cap.retrieve(frame))
 			continue;
 
-		int prediction = -1;
-		double confidence = 0.0;
-
-		skip = 1;
-
 		original = frame.clone();
-		Mat gray;
 		cvtColor(original, gray, CV_BGR2GRAY);
-		vector< Rect_<int> > faces;
 		haar_cascade.detectMultiScale(gray, faces);
+
+		if (faces.size() == 0)
+		{
+			std::cerr << "No face found." << std::endl;
+			if (gone_count++ == max_gone_count)
+			{
+				gone_count = 0;
+				ResetLauncher();
+			}
+
+		}
 
 		for (size_t i = 0; i < faces.size(); i++)
 		{
-			Rect face_i = faces[i];
-			Mat face = gray(face_i);
+			Rect face_rect = faces[i];
+			Mat face = gray(face_rect);
 
 			Mat face_resized;
 			cv::resize(face, face_resized,
-			           Size(im_width, im_height),
+			           Size(face_width, face_height),
 			           1.0, 1.0, INTER_CUBIC);
 
 			model->predict(face_resized, prediction, confidence);
-			if (confidence > 1000.0f)
+			if (confidence > max_difference)
+			{
+				std::cerr << "No Match. Confidence: " << confidence << std::endl;
+				if (gone_count++ == max_gone_count)
+				{
+					gone_count = 0;
+					ResetLauncher();
+				}
 				continue;
+			}
 
-			rectangle(original, face_i, CV_RGB(0, 255, 0), 1);
-			string box_text = format("Prediction = %d Confidence = %lf",
-			                         prediction, confidence);
-			int pos_x = std::max(face_i.tl().x - 10, 0);
-			int pos_y = std::max(face_i.tl().y - 10, 0);
-			putText(original, box_text, Point(pos_x, pos_y),
-			        FONT_HERSHEY_PLAIN, 1.0, CV_RGB(0, 255, 0), 2.0);
+			StopLauncher();
+
+			std::cerr << "Match: " << prediction << " "
+			          << "Confidence: " << confidence << std::endl;
+
+			std::cerr << "Position: (" << face_rect.x + (face_rect.width / 2) << ","
+			          << face_rect.y + (face_rect.height / 2) << ")\n";
+
+			Track(face_rect.x + (face_rect.width / 2), original.cols / 2);
 		}
-		imshow("face_recognizer", original);
-		char key = (char) waitKey(5);
-		if (key == 27)
-			break;
 	}
 
 	return 0;
 }
+
+void
+OnlyDreamsNow::Track(int x, int center)
+{
+	if (center + diff > x && center - diff <  x)
+	{
+		// Centered
+		if (center_count++ == max_center_count)
+		{
+			center_count = 0;
+			FireLauncher();
+		}
+		return;
+	}
+
+	// Not Centered.
+	center_count = 0;
+	if (center + diff < x)
+	{
+		TrackRight();
+	}
+	else
+	{
+		TrackLeft();
+	}
+}
+
+void
+OnlyDreamsNow::StopLauncher()
+{
+	int rv;
+	rv = ml_stop_launcher(launcher);
+	if (rv != ML_OK)
+	{
+		syslog(LOG_NOTICE, "Failed to stop launcher.");
+	}
+}
+
+void
+OnlyDreamsNow::FireLauncher()
+{
+	int rv;
+	std::cerr << "Firing.\n";
+	rv = ml_fire_launcher(launcher);
+	if (rv != ML_OK)
+	{
+		syslog(LOG_NOTICE, "Failed to fire launcher.");
+	}
+}
+
+void
+OnlyDreamsNow::TrackRight()
+{
+	int rv;
+	std::cerr << "Track Right.\n";
+	rv = ml_move_launcher(launcher, ML_RIGHT);
+	if (rv != ML_OK)
+	{
+		syslog(LOG_NOTICE, "Failed to track right.");
+	}
+	zeroed = false;
+}
+
+void
+OnlyDreamsNow::TrackLeft()
+{
+	int rv;
+	std::cerr << "Track Left.\n";
+	rv = ml_move_launcher(launcher, ML_LEFT);
+	if (rv != ML_OK)
+	{
+		syslog(LOG_NOTICE, "Failed to track left.");
+	}
+	zeroed = false;
+}
+
+/**
+ * @brief ResetLauncher the position of the launcher.
+ */
+void
+OnlyDreamsNow::ResetLauncher()
+{
+	int rv;
+	std::cerr << "ResetLauncher.\n";
+
+	center_count = 0;
+	gone_count = 0;
+
+	// Already zeroed.
+	if (zeroed)
+		return;
+
+	rv = ml_zero_launcher(launcher);
+	if (rv != ML_OK)
+	{
+		syslog(LOG_NOTICE, "Failed to zero launcher.");
+		return;
+	}
+
+	rv = ml_move_launcher_mseconds(launcher, ML_UP, 200);
+	if (rv != ML_OK)
+	{
+		syslog(LOG_NOTICE, "Failed to reset launcher angle.");
+	}
+
+	zeroed = true;
+}
+

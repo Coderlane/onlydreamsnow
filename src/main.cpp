@@ -16,6 +16,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include <libmissilelauncher/libmissilelauncher.h>
+
 #include "onlydreamsnow.h"
 
 using std::string;
@@ -135,7 +137,15 @@ run(const string config_path)
 {
 	int rv;
 	OnlyDreamsNow sleeper;
+	ml_init_library();
 
 	rv = sleeper.Load(config_path);
-	return rv < 0 ? rv : sleeper.Run();
+	if(rv != 0) {
+		goto out;	
+	}
+ 	rv = sleeper.Run();
+
+out:
+	ml_cleanup_library();
+	return rv;
 }
