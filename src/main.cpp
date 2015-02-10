@@ -137,7 +137,7 @@ run(const string config_path)
 {
 	int rv;
 	OnlyDreamsNow sleeper;
-	ml_init_library();
+	ml_library_init();
 
 	rv = sleeper.Load(config_path);
 	if(rv != 0) {
@@ -146,6 +146,6 @@ run(const string config_path)
  	rv = sleeper.Run();
 
 out:
-	ml_cleanup_library();
+	ml_library_cleanup();
 	return rv;
 }

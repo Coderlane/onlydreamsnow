@@ -16,7 +16,8 @@ OnlyDreamsNow::~OnlyDreamsNow()
 {
 	if (launcher != NULL)
 	{
-		ml_dereference_launcher(launcher);
+		ml_launcher_unclaim(launcher);
+		ml_launcher_dereference(launcher);
 	}
 }
 
@@ -47,7 +48,7 @@ OnlyDreamsNow::Load(const string config_path)
 		return 1;
 	}
 
-	rv = ml_get_launcher_array(&launchers, &launchers_count);
+	rv = ml_launcher_array_new(&launchers, &launchers_count);
 	if (rv != ML_OK)
 	{
 		if (rv != ML_NO_LAUNCHERS)
@@ -101,7 +102,13 @@ OnlyDreamsNow::Load(const string config_path)
 	haar_xml_path = string(local_haar_xml_path);
 	face_csv_path = string(local_face_csv_path);
 	launcher = launchers[launcher_id];
-	ml_reference_launcher(launcher);
+	ml_launcher_reference(launcher);
+
+	rv = ml_launcher_claim(launcher);
+	if(rv != ML_OK) {
+		syslog(LOG_ERR, "Failed to claim launcher.");
+		goto out;
+	}
 
 	loaded = true;
 	rv = 0;
@@ -239,6 +246,7 @@ OnlyDreamsNow::Run()
 				continue;
 			}
 
+			gone_count = 0;
 			StopLauncher();
 
 			std::cerr << "Match: " << prediction << " "
@@ -284,7 +292,7 @@ void
 OnlyDreamsNow::StopLauncher()
 {
 	int rv;
-	rv = ml_stop_launcher(launcher);
+	rv = ml_launcher_stop(launcher);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to stop launcher.");
@@ -296,7 +304,7 @@ OnlyDreamsNow::FireLauncher()
 {
 	int rv;
 	std::cerr << "Firing.\n";
-	rv = ml_fire_launcher(launcher);
+	rv = ml_launcher_fire(launcher);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to fire launcher.");
@@ -308,7 +316,7 @@ OnlyDreamsNow::TrackRight()
 {
 	int rv;
 	std::cerr << "Track Right.\n";
-	rv = ml_move_launcher(launcher, ML_RIGHT);
+	rv = ml_launcher_move_mseconds(launcher, ML_RIGHT, 100);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to track right.");
@@ -321,7 +329,7 @@ OnlyDreamsNow::TrackLeft()
 {
 	int rv;
 	std::cerr << "Track Left.\n";
-	rv = ml_move_launcher(launcher, ML_LEFT);
+	rv = ml_launcher_move_mseconds(launcher, ML_LEFT, 100);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to track left.");
@@ -345,14 +353,14 @@ OnlyDreamsNow::ResetLauncher()
 	if (zeroed)
 		return;
 
-	rv = ml_zero_launcher(launcher);
+	rv = ml_launcher_zero(launcher);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to zero launcher.");
 		return;
 	}
 
-	rv = ml_move_launcher_mseconds(launcher, ML_UP, 200);
+	rv = ml_launcher_move_mseconds(launcher, ML_UP, 300);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to reset launcher angle.");
