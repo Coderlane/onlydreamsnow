@@ -71,6 +71,7 @@ OnlyDreamsNow::Load(const string config_path)
 		goto out;
 	}
 
+	max_difference = 5000;
 	if (local_haar_xml_path == NULL)
 	{
 		syslog(LOG_ERR, "Failed to find haar_xml_path in config.");
@@ -213,13 +214,15 @@ OnlyDreamsNow::Run()
 		cvtColor(original, gray, CV_BGR2GRAY);
 		haar_cascade.detectMultiScale(gray, faces);
 
+		StopLauncher();
+
 		if (faces.size() == 0)
 		{
 			std::cerr << "No face found." << std::endl;
 			if (gone_count++ == max_gone_count)
 			{
 				gone_count = 0;
-				ResetLauncher();
+				//ResetLauncher();
 			}
 
 		}
@@ -237,17 +240,17 @@ OnlyDreamsNow::Run()
 			model->predict(face_resized, prediction, confidence);
 			if (confidence > max_difference)
 			{
-				std::cerr << "No Match. Confidence: " << confidence << std::endl;
+				std::cerr << "No Match. Confidence: " << confidence
+					<< " Difference: " << max_difference << std::endl;
 				if (gone_count++ == max_gone_count)
 				{
 					gone_count = 0;
-					ResetLauncher();
+					//ResetLauncher();
 				}
 				continue;
 			}
 
 			gone_count = 0;
-			StopLauncher();
 
 			std::cerr << "Match: " << prediction << " "
 			          << "Confidence: " << confidence << std::endl;
@@ -309,6 +312,7 @@ OnlyDreamsNow::FireLauncher()
 	{
 		syslog(LOG_NOTICE, "Failed to fire launcher.");
 	}
+	sleep(5);
 }
 
 void
@@ -316,7 +320,8 @@ OnlyDreamsNow::TrackRight()
 {
 	int rv;
 	std::cerr << "Track Right.\n";
-	rv = ml_launcher_move_mseconds(launcher, ML_RIGHT, 100);
+	//rv = ml_launcher_move(launcher, ML_RIGHT);
+	rv = ml_launcher_move_mseconds(launcher, ML_RIGHT, 30);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to track right.");
@@ -329,7 +334,8 @@ OnlyDreamsNow::TrackLeft()
 {
 	int rv;
 	std::cerr << "Track Left.\n";
-	rv = ml_launcher_move_mseconds(launcher, ML_LEFT, 100);
+	//rv = ml_launcher_move(launcher, ML_LEFT);
+	rv = ml_launcher_move_mseconds(launcher, ML_LEFT, 30);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to track left.");
@@ -360,7 +366,7 @@ OnlyDreamsNow::ResetLauncher()
 		return;
 	}
 
-	rv = ml_launcher_move_mseconds(launcher, ML_UP, 300);
+	rv = ml_launcher_move_mseconds(launcher, ML_UP, 400);
 	if (rv != ML_OK)
 	{
 		syslog(LOG_NOTICE, "Failed to reset launcher angle.");
