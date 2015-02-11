@@ -35,12 +35,14 @@ set(ONLYDREAMSNOW_SOURCE_FILES ${SOURCE_FILES})
 pkg_search_module(LIBOPENCV REQUIRED opencv)
 pkg_search_module(LIBCONFUSE REQUIRED libconfuse)
 pkg_search_module(LIBML REQUIRED libmissilelauncher)
+pkg_search_module(LIBUV REQUIRED libuv)
 
 # Build and link the executable
 add_executable(${ONLYDREAMSNOW_EXE} ${ONLYDREAMSNOW_SOURCE_FILES})
 target_link_libraries(${ONLYDREAMSNOW_EXE} ${LIBOPENCV_LIBRARIES})
 target_link_libraries(${ONLYDREAMSNOW_EXE} ${LIBCONFUSE_LIBRARIES})
 target_link_libraries(${ONLYDREAMSNOW_EXE} ${LIBML_LIBRARIES})
+target_link_libraries(${ONLYDREAMSNOW_EXE} ${LIBUV_LIBRARIES})
 
 # Config File Settings
 set(ONLYDREAMSNOW_INSTALL_PREFIX      "${CMAKE_INSTALL_PREFIX}")

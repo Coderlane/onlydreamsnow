@@ -1,32 +1,28 @@
 
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/contrib/contrib.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/objdetect/objdetect.hpp>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <vector>
+
+#include <uv.h>
 
 #include <libmissilelauncher/libmissilelauncher.h>
 
+#include "launcher.h"
+
 using std::ifstream;
 using std::stringstream;
-using std::vector;
 using std::string;
-
-using namespace cv;
 
 class OnlyDreamsNow
 {
 
 private:
-	string haar_xml_path;
-	string face_csv_path;
+	std::string haar_face_path;
+	std::string haar_body_path;
+	std::string face_csv_path;
+
+	uv_loop_t *main_loop;
 
 	int launcher_id = 0;
 	int camera_id = 0;
@@ -39,27 +35,16 @@ private:
 
 	int gone_count = 0;
 	int max_gone_count = 10;
-
 	bool loaded = false;
-	bool zeroed = false;
 
-	ml_launcher_t **launchers = NULL;
-	ml_launcher_t *launcher = NULL;
+	Launcher *launcher = NULL;
 
-	void ReadCSV(const string& filename, vector<Mat>& images,
-	             vector<int>& labels, char separator = ';');
-
-	void Track(int x, int center);
-	void TrackLeft();
-	void TrackRight();
-	void StopLauncher();
-	void FireLauncher();
-	void ResetLauncher();
+	void static RunInit(uv_timer_t *timer);
 
 public:
 	OnlyDreamsNow();
 	~OnlyDreamsNow();
 
-	int Load(string config_path);
+	int Load(std::string config_path);
 	int Run();
 };
