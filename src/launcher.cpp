@@ -21,7 +21,6 @@ Launcher::Launcher(uv_loop_t *main_loop,
                    ml_launcher_t *launcher, int camera_id, int fps,
                    std::string haar_body_path, std::string haar_face_path)
 {
-
 	int rv;
 	ml_launcher_reference(launcher);
 	rv = ml_launcher_claim(launcher);
@@ -38,9 +37,7 @@ Launcher::Launcher(uv_loop_t *main_loop,
 	this->haar_face_path = haar_face_path;
 
 	uv_mutex_init(&(this->launcher_mutex));
-	uv_timer_init(this->main_loop, &(this->launcher_stop_timer));
 
-	this->launcher_stop_timer.data = this;
 }
 
 Launcher::~Launcher()
@@ -97,6 +94,9 @@ Launcher::Run(void *arg)
 	vector<Mat> images;
 	vector<int> labels;
 
+	uv_timer_init(launcher->main_loop, &(launcher->launcher_stop_timer));
+	launcher->launcher_stop_timer.data = launcher;
+
 	CascadeClassifier body_cascade, face_cascade;
 	body_cascade.load(launcher->haar_body_path);
 	face_cascade.load(launcher->haar_face_path);
@@ -128,10 +128,9 @@ Launcher::Run(void *arg)
 		cvtColor(orig_frame, gray_frame, CV_BGR2GRAY);
 		body_cascade.detectMultiScale(gray_frame, bodies);
 
+		// No bodies foudn.
 		if (bodies.size() == 0)
-		{
-			std::cerr << "No body found." << std::endl;
-		}
+			continue;
 
 		for (size_t i = 0; i < bodies.size(); i++)
 		{
@@ -143,18 +142,16 @@ Launcher::Run(void *arg)
 			// The body detector seems a bit weak.
 			face_cascade.detectMultiScale(body_frame, faces);
 
+			// No faces found.
 			if (faces.size() == 0)
-			{
-				std::cerr << "No face found." << std::endl;
 				continue;
-			}
 
 			// Use the first face found, and set it's offset.
 			face = faces[0];
 			face.x += bodies[i].x;
 			face.y += bodies[i].y;
 
-			//Track(frame_rect, face);
+			Track(launcher, frame_rect, face);
 		}
 	}
 }
@@ -193,9 +190,7 @@ Launcher::Track(Launcher *launcher, Rect frame_rect, Rect face_rect)
 		{
 			msec = 120;
 		}
-		std::cerr << face_center_x << "," << center_x << " "
-		          << face_diff_x << " " << msec << std::endl;
-
+		
 		// Not Centered.
 		launcher->center_count = 0;
 		if (face_center_x > center_x)
@@ -250,7 +245,7 @@ Launcher::LauncherFire(Launcher *launcher)
 
 	launcher->state = LauncherState::FIRE;
 	uv_timer_start(&(launcher->launcher_stop_timer),
-	               Launcher::LauncherStop, 0, 5000);
+	               Launcher::LauncherStop, 5000, 0);
 
 out:
 	uv_mutex_unlock(&(launcher->launcher_mutex));
@@ -279,7 +274,7 @@ Launcher::LauncherRight(Launcher *launcher, int msec)
 
 	launcher->state = LauncherState::RIGHT;
 	uv_timer_start(&(launcher->launcher_stop_timer),
-	               Launcher::LauncherStop, 0, msec);
+	               Launcher::LauncherStop, msec, 0);
 
 out:
 	uv_mutex_unlock(&(launcher->launcher_mutex));
@@ -308,7 +303,7 @@ Launcher::LauncherLeft(Launcher *launcher, int msec)
 
 	launcher->state = LauncherState::LEFT;
 	uv_timer_start(&(launcher->launcher_stop_timer),
-	               Launcher::LauncherStop, 0, msec);
+	               Launcher::LauncherStop, msec, 0);
 out:
 	uv_mutex_unlock(&(launcher->launcher_mutex));
 	return rv;
@@ -343,8 +338,3 @@ out:
 	uv_mutex_unlock(&(launcher->launcher_mutex));
 	return rv;
 }
-
-
-
-
-
