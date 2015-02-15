@@ -36,7 +36,7 @@ Launcher::Launcher(uv_loop_t *main_loop,
 	this->haar_body_path = haar_body_path;
 	this->haar_face_path = haar_face_path;
 
-	uv_mutex_init(&(this->launcher_mutex));
+	uv_mutex_init(&(this->movement_mutex));
 
 }
 
@@ -53,18 +53,30 @@ int
 Launcher::Start()
 {
 	int rv = -100;
-	uv_mutex_lock(&this->launcher_mutex);
+	uv_mutex_lock(&this->movement_mutex);
 	if (running)
 	{
 		rv = 0;
 		goto out;
 	}
 	continue_loop = true;
+
+	rv = uv_thread_create(&(this->camera_thread),
+	                      Launcher::RunCamera, this);
+	if (rv != 0)
+	{
+		goto out;
+	}
+
 	rv = uv_thread_create(&(this->launcher_thread),
-	                      Launcher::Run, &(this->continue_loop));
+	                      Launcher::RunLauncher, this);
 
 out:
-	uv_mutex_unlock(&this->launcher_mutex);
+	if (rv != 0)
+	{
+		continue_loop = false;
+	}
+	uv_mutex_unlock(&this->movement_mutex);
 	return rv;
 }
 
@@ -72,7 +84,7 @@ int
 Launcher::Stop()
 {
 	int rv = -100;
-	uv_mutex_lock(&(this->launcher_mutex));
+	uv_mutex_lock(&(this->movement_mutex));
 	if (!running)
 	{
 		rv = 0;
@@ -82,25 +94,39 @@ Launcher::Stop()
 	rv = uv_thread_join(&(this->launcher_thread));
 
 out:
-	uv_mutex_unlock(&this->launcher_mutex);
+	uv_mutex_unlock(&this->movement_mutex);
 	return rv;
 }
 
 void
-Launcher::Run(void *arg)
+Launcher::RunLauncher(void *arg)
 {
 	Launcher *launcher = static_cast<Launcher *>(arg);
+	uv_loop_t loop;
+	uv_loop_init(&loop);
 
+	uv_timer_init(&loop, &(launcher->stop_timer));
+	launcher->stop_timer.data = launcher;
+
+	while (launcher->continue_loop)
+	{
+		uv_run(&loop, UV_RUN_DEFAULT);
+	}
+}
+
+void
+Launcher::RunCamera(void *arg)
+{
+	Launcher *launcher = static_cast<Launcher *>(arg);
 	vector<Mat> images;
 	vector<int> labels;
-
-	uv_timer_init(launcher->main_loop, &(launcher->launcher_stop_timer));
-	launcher->launcher_stop_timer.data = launcher;
-
 	CascadeClassifier body_cascade, face_cascade;
+
 	body_cascade.load(launcher->haar_body_path);
 	face_cascade.load(launcher->haar_face_path);
 
+	// Reset the launcher.
+	LauncherReset(launcher);
 
 	VideoCapture cap(launcher->camera_id);
 	if (!cap.isOpened())
@@ -190,7 +216,7 @@ Launcher::Track(Launcher *launcher, Rect frame_rect, Rect face_rect)
 		{
 			msec = 120;
 		}
-		
+
 		// Not Centered.
 		launcher->center_count = 0;
 		if (face_center_x > center_x)
@@ -210,7 +236,7 @@ Launcher::LauncherStop(uv_timer_t *timer)
 	int rv;
 	Launcher *launcher = static_cast<Launcher *>(timer->data);
 
-	uv_mutex_lock(&(launcher->launcher_mutex));
+	uv_mutex_lock(&(launcher->movement_mutex));
 
 	rv = ml_launcher_stop(launcher->launcher);
 	if (rv != ML_OK)
@@ -220,7 +246,7 @@ Launcher::LauncherStop(uv_timer_t *timer)
 
 	launcher->state = LauncherState::STOPPED;
 
-	uv_mutex_unlock(&(launcher->launcher_mutex));
+	uv_mutex_unlock(&(launcher->movement_mutex));
 }
 
 int
@@ -228,7 +254,7 @@ Launcher::LauncherFire(Launcher *launcher)
 {
 	int rv;
 
-	uv_mutex_lock(&(launcher->launcher_mutex));
+	uv_mutex_lock(&(launcher->movement_mutex));
 
 	if (launcher->state != LauncherState::STOPPED)
 	{
@@ -244,11 +270,11 @@ Launcher::LauncherFire(Launcher *launcher)
 	}
 
 	launcher->state = LauncherState::FIRE;
-	uv_timer_start(&(launcher->launcher_stop_timer),
+	uv_timer_start(&(launcher->stop_timer),
 	               Launcher::LauncherStop, 5000, 0);
 
 out:
-	uv_mutex_unlock(&(launcher->launcher_mutex));
+	uv_mutex_unlock(&(launcher->movement_mutex));
 	return rv;
 }
 
@@ -257,7 +283,7 @@ Launcher::LauncherRight(Launcher *launcher, int msec)
 {
 	int rv;
 
-	uv_mutex_lock(&(launcher->launcher_mutex));
+	uv_mutex_lock(&(launcher->movement_mutex));
 
 	if (launcher->state != LauncherState::STOPPED)
 	{
@@ -273,11 +299,11 @@ Launcher::LauncherRight(Launcher *launcher, int msec)
 	}
 
 	launcher->state = LauncherState::RIGHT;
-	uv_timer_start(&(launcher->launcher_stop_timer),
+	uv_timer_start(&(launcher->stop_timer),
 	               Launcher::LauncherStop, msec, 0);
 
 out:
-	uv_mutex_unlock(&(launcher->launcher_mutex));
+	uv_mutex_unlock(&(launcher->movement_mutex));
 	return rv;
 }
 
@@ -286,7 +312,7 @@ Launcher::LauncherLeft(Launcher *launcher, int msec)
 {
 	int rv;
 
-	uv_mutex_lock(&(launcher->launcher_mutex));
+	uv_mutex_lock(&(launcher->movement_mutex));
 
 	if (launcher->state != LauncherState::STOPPED)
 	{
@@ -302,10 +328,10 @@ Launcher::LauncherLeft(Launcher *launcher, int msec)
 	}
 
 	launcher->state = LauncherState::LEFT;
-	uv_timer_start(&(launcher->launcher_stop_timer),
+	uv_timer_start(&(launcher->stop_timer),
 	               Launcher::LauncherStop, msec, 0);
 out:
-	uv_mutex_unlock(&(launcher->launcher_mutex));
+	uv_mutex_unlock(&(launcher->movement_mutex));
 	return rv;
 }
 
@@ -317,7 +343,7 @@ Launcher::LauncherReset(Launcher *launcher)
 {
 	int rv;
 
-	uv_mutex_lock(&(launcher->launcher_mutex));
+	uv_mutex_lock(&(launcher->movement_mutex));
 
 	launcher->center_count = 0;
 
@@ -335,6 +361,6 @@ Launcher::LauncherReset(Launcher *launcher)
 	}
 
 out:
-	uv_mutex_unlock(&(launcher->launcher_mutex));
+	uv_mutex_unlock(&(launcher->movement_mutex));
 	return rv;
 }

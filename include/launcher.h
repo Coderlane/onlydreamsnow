@@ -22,9 +22,12 @@ private:
 	cv::Point GetClosestFace(cv::Mat frame);
 
 	uv_loop_t *main_loop;
+
 	uv_thread_t launcher_thread;
-	uv_mutex_t launcher_mutex;
-	uv_timer_t launcher_stop_timer;
+	uv_thread_t camera_thread;
+
+	uv_mutex_t movement_mutex;
+	uv_timer_t stop_timer;
 
 	bool running = false;
 	bool continue_loop = false;
@@ -42,7 +45,8 @@ private:
 	int diff = 40;
 
 
-	void static Run(void *arg);
+	void static RunCamera(void *arg);
+	void static RunLauncher(void *arg);
 	void static Track(Launcher *launcher,
 	                  cv::Rect frame_rect, cv::Rect face_rect);
 
