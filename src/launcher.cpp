@@ -1,7 +1,10 @@
 
 
+#include <iostream>
+
 #include "launcher.h"
 
+using namespace std;
 
 Launcher::Launcher(ml_launcher_t *launcher)
 {
@@ -37,6 +40,9 @@ Launcher::~Launcher()
   }
 }
 
+void Launcher::Heartbeat(uv_timer_t *timer) {
+	//cerr << "Heartbeat.\n";
+}
 
 void Launcher::Run(void *arg)
 {
@@ -45,7 +51,10 @@ void Launcher::Run(void *arg)
 
   uv_loop_init(&loop);
   uv_timer_init(&loop, &(launcher->ol_timer));
+	uv_timer_init(&loop, &(launcher->ol_heartbeat));
   uv_async_init(&loop, &(launcher->ol_async), NULL);
+
+	uv_timer_start(&(launcher->ol_heartbeat), Launcher::Heartbeat, 10, 10);
 
   launcher->ol_timer.data = launcher;
 
@@ -63,6 +72,9 @@ Launcher::RunCommand(Launcher *launcher)
   switch(launcher->ol_command) {
   case LauncherCommand::MOVE:
 		launcher->ol_idle = false;
+		cerr << "Move " << (int) launcher->ol_direction << " for ";
+		cerr << launcher->ol_duration << endl;
+
     rv = ml_launcher_move(launcher->ol_launcher,
                           (ml_launcher_direction) launcher->ol_direction);
 
@@ -99,6 +111,8 @@ Launcher::TimerDone(uv_timer_t *timer)
 {
   Launcher *launcher = (Launcher *) timer->data;
 
+	cerr << "Stop.\n";
+
 	uv_mutex_lock(&(launcher->ol_mutex));
 
   ml_launcher_stop(launcher->ol_launcher);
@@ -134,7 +148,7 @@ Launcher::Reset()
   uv_mutex_lock(&ol_mutex);
 
   // Set this as the next command.
-  ol_command = LauncherCommand::FIRE;
+  ol_command = LauncherCommand::RESET;
 
   if(ol_idle) {
     // Launcher was ready for a command.

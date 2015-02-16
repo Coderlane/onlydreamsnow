@@ -31,11 +31,6 @@ private:
 	int fps = 15;
 	int max_difference = 2000;
 
-	int center_count = 0;
-	int max_center_count = 3;
-
-	int gone_count = 0;
-	int max_gone_count = 10;
 	bool loaded = false;
 
 	Tracker *tracker = NULL;

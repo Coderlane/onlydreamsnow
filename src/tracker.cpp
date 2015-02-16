@@ -79,6 +79,7 @@ Tracker::Run(void *arg)
 
     // No bodies foudn.
     if (bodies.size() == 0) {
+			cerr << "No body.\n";
       continue;
     }
 
@@ -93,6 +94,7 @@ Tracker::Run(void *arg)
 
       // No faces found.
       if (faces.size() == 0) {
+				cerr << "No face.\n";
         continue;
       }
 
@@ -119,6 +121,7 @@ Tracker::Track(Tracker *tracker, Rect frame_rect, Rect face_rect)
     // Centered
     if (tracker->ot_center_count++ == tracker->ot_max_center_count) {
       tracker->ot_center_count = 0;
+			cerr << "Fire.\n";
    		tracker->ot_launcher->Fire(); 
 		}
   } else {
@@ -135,8 +138,10 @@ Tracker::Track(Tracker *tracker, Rect frame_rect, Rect face_rect)
     // Not Centered.
     tracker->ot_center_count = 0;
     if (face_center_x > center_x) {
+			cerr << "Right.\n";
       tracker->ot_launcher->Move(LauncherDirection::RIGHT, msec);
     } else {
+			cerr << "Left.\n";
       tracker->ot_launcher->Move(LauncherDirection::LEFT, msec);
     }
   }

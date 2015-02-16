@@ -36,15 +36,16 @@ class Launcher
 private:
   ml_launcher_t *ol_launcher = NULL;
 
-  uv_loop_t ol_loop;
   uv_thread_t ol_thread;
   uv_mutex_t ol_mutex;
   uv_async_t ol_async;
 	uv_timer_t ol_timer;
+	uv_timer_t ol_heartbeat;
 
   bool ol_running = false;
 	bool ol_idle = true;
 
+	static void Heartbeat(uv_timer_t *timer);
 	static void TimerDone(uv_timer_t *timer);
   static void Run(void *arg);
   static void RunCommand(Launcher *launcher);
