@@ -1,68 +1,68 @@
 
-#include <opencv2/core/core.hpp>
 
-#include <string>
 
-#include <uv.h>
+#ifndef LAUNCHER_H
+#define LAUNCHER_H
+
+#include <exception>
 
 #include <libmissilelauncher/libmissilelauncher.h>
+#include <uv.h>
 
-enum class LauncherState
+
+struct LauncherException : std::exception {
+  char const *what() const throw();
+};
+
+enum class LauncherDirection
 {
+  UP = ML_UP,
+  DOWN = ML_DOWN,
+  LEFT = ML_LEFT,
+  RIGHT = ML_RIGHT
+};
+
+enum class LauncherCommand
+{
+  STOP,
+  RESET,
   FIRE,
-  LEFT,
-  RIGHT,
-  STOPPED
+  MOVE,
+  IDLE
 };
 
 class Launcher
 {
 private:
+  ml_launcher_t *ol_launcher = NULL;
 
-  cv::Point GetClosestFace(cv::Mat frame);
+  uv_loop_t ol_loop;
+  uv_thread_t ol_thread;
+  uv_mutex_t ol_mutex;
+  uv_async_t ol_async;
+	uv_timer_t ol_timer;
 
-  uv_loop_t *main_loop;
+  bool ol_running = false;
+	bool ol_idle = true;
 
-  uv_thread_t launcher_thread;
-  uv_thread_t camera_thread;
-
-  uv_mutex_t movement_mutex;
-  uv_timer_t stop_timer;
-  uv_async_t loop_async;
-
-  bool running = false;
-  bool continue_loop = false;
-  LauncherState state = LauncherState::STOPPED;
-
-  std::string haar_body_path;
-  std::string haar_face_path;
-
-  ml_launcher_t *launcher;
-  int camera_id;
-  int fps;
-
-  int center_count = 0;
-  int max_center_count = 5;
-  int diff = 40;
+	static void TimerDone(uv_timer_t *timer);
+  static void Run(void *arg);
+  static void RunCommand(Launcher *launcher);
 
 
-  void static RunCamera(void *arg);
-  void static RunLauncher(void *arg);
-  void static Track(Launcher *launcher,
-                    cv::Rect frame_rect, cv::Rect face_rect);
-
-
-  void static LauncherStop(uv_timer_t *timer);
-  int static LauncherReset(Launcher *launcher);
-  int static LauncherFire(Launcher *launcher);
-  int static LauncherLeft(Launcher *launcher, int msec);
-  int static LauncherRight(Launcher *launcher, int msec);
+  LauncherCommand ol_command = LauncherCommand::IDLE;
+  LauncherDirection ol_direction = LauncherDirection::UP;
+  int ol_duration = 0;
 
 public:
-  Launcher(uv_loop_t *main_loop,
-           ml_launcher_t *launcher, int camera_id, int fps,
-           std::string haar_body_path, std::string haar_face_path);
+  Launcher(ml_launcher_t *launcher);
   ~Launcher();
-  int Start();
-  int Stop();
+
+  void Fire();
+  void Reset();
+  void Stop();
+  void Move(LauncherDirection direction, int msec_duration);
 };
+
+
+#endif /* LAUNCHER_H */

@@ -116,9 +116,10 @@ OnlyDreamsNow::Load(const string config_path)
 	face_csv_path = string(local_face_csv_path);
 	launcher = launchers[launcher_id];
 
-	this->launcher = new Launcher(main_loop, launcher, camera_id, fps,
-	                          haar_body_path, haar_face_path);
 
+	this->odn_launcher = new Launcher(launcher);
+	this->tracker = new Tracker(this->odn_launcher, camera_id, fps,
+	                          haar_body_path, haar_face_path);
 
 	loaded = true;
 	rv = 0;
@@ -130,15 +131,6 @@ out:
 	return rv;
 }
 
-
-void OnlyDreamsNow::RunInit(uv_timer_t *timer)
-{
-	OnlyDreamsNow *dreams = static_cast<OnlyDreamsNow *>(timer->data);
-
-	dreams->launcher->Start();
-}
-
-
 /**
  * @brief
  *
@@ -147,11 +139,8 @@ void OnlyDreamsNow::RunInit(uv_timer_t *timer)
 int
 OnlyDreamsNow::Run()
 {
-	uv_timer_t init_timer;
-
-	uv_timer_init(main_loop, &init_timer);
-	init_timer.data = this;
-	uv_timer_start(&init_timer, OnlyDreamsNow::RunInit, 0, 0);
+	uv_async_t async;
+	uv_async_init(main_loop, &async, NULL);
 
 	return uv_run(main_loop, UV_RUN_DEFAULT);
 }

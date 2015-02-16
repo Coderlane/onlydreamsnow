@@ -8,6 +8,7 @@
 
 #include <libmissilelauncher/libmissilelauncher.h>
 
+#include "tracker.h"
 #include "launcher.h"
 
 using std::ifstream;
@@ -37,9 +38,8 @@ private:
 	int max_gone_count = 10;
 	bool loaded = false;
 
-	Launcher *launcher = NULL;
-
-	void static RunInit(uv_timer_t *timer);
+	Tracker *tracker = NULL;
+	Launcher *odn_launcher = NULL;
 
 public:
 	OnlyDreamsNow();
