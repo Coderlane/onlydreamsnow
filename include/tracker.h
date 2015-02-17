@@ -40,7 +40,7 @@ private:
   int static TrackerRight(Tracker *tracker, int msec);
 
 public:
-  Tracker(Launcher *launcher, int camera_id, int fps,
+  Tracker(Launcher *launcher, int camera_id, int fps, int diff,
            std::string haar_body_path, std::string haar_face_path);
   ~Tracker();
 

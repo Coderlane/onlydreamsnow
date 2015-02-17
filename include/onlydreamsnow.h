@@ -25,15 +25,14 @@ private:
 
 	uv_loop_t *main_loop;
 
-	int launcher_id = 0;
-	int camera_id = 0;
-	int diff = 5;
-	int fps = 15;
-	int max_difference = 2000;
+	long launcher_id = 0;
+	long camera_id = 0;
+	long diff = 5;
+	long fps = 15;
 
 	bool loaded = false;
 
-	Tracker *tracker = NULL;
+	Tracker *odn_tracker = NULL;
 	Launcher *odn_launcher = NULL;
 
 public:

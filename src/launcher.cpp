@@ -40,7 +40,7 @@ Launcher::~Launcher()
   }
 }
 
-void Launcher::Heartbeat(uv_timer_t *timer) {
+void Launcher::Heartbeat(uv_timer_t *) {
 	//cerr << "Heartbeat.\n";
 }
 
@@ -111,13 +111,13 @@ Launcher::TimerDone(uv_timer_t *timer)
 {
   Launcher *launcher = (Launcher *) timer->data;
 
-	cerr << "Stop.\n";
-
 	uv_mutex_lock(&(launcher->ol_mutex));
 
   ml_launcher_stop(launcher->ol_launcher);
 
 	launcher->ol_idle = true;
+
+	cerr << "Stop." << endl;
 
 	if(launcher->ol_command != LauncherCommand::IDLE) {
 		RunCommand(launcher);
@@ -131,12 +131,10 @@ Launcher::Fire()
 {
   uv_mutex_lock(&ol_mutex);
 
-  // Set this as the next command.
   ol_command = LauncherCommand::FIRE;
 
   if(ol_idle) {
-    // Launcher was ready for a command.
-    Launcher::RunCommand(this);
+		Launcher::RunCommand(this);
   }
 
   uv_mutex_unlock(&ol_mutex);
@@ -147,11 +145,9 @@ Launcher::Reset()
 {
   uv_mutex_lock(&ol_mutex);
 
-  // Set this as the next command.
   ol_command = LauncherCommand::RESET;
 
   if(ol_idle) {
-    // Launcher was ready for a command.
     Launcher::RunCommand(this);
   }
 
@@ -163,12 +159,10 @@ Launcher::Stop()
 {
   uv_mutex_lock(&ol_mutex);
 
-  // Set this as the next command.
   ol_command = LauncherCommand::STOP;
 
   if(ol_idle) {
-    // Launcher was ready for a command.
-    Launcher::RunCommand(this);
+		Launcher::RunCommand(this);
   }
 
   uv_mutex_unlock(&ol_mutex);
@@ -179,12 +173,11 @@ Launcher::Move(LauncherDirection direction, int duration)
 {
   uv_mutex_lock(&ol_mutex);
 
-  ol_direction = direction;
-  ol_duration = duration;
-  ol_command = LauncherCommand::MOVE;
-
   if(ol_idle) {
-    // Launcher was ready for a command.
+    ol_direction = direction;
+    ol_duration = duration;
+    ol_command = LauncherCommand::MOVE;
+    
     Launcher::RunCommand(this);
   }
 
