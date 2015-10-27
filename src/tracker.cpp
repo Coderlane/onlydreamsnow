@@ -50,9 +50,7 @@ Tracker::Run(void *arg)
   face_cascade.load(tracker->ot_haar_face_path);
 
   // Reset the launcher.
-//	tracker->ot_launcher->Reset();
-//
- 
+
 	cerr << tracker->ot_camera_id << endl;
   VideoCapture cap(tracker->ot_camera_id);
   if (!cap.isOpened()) {
@@ -101,7 +99,6 @@ Tracker::Run(void *arg)
       }
 
 			//rectangle(orig_frame, bodies[i], CV_RGB(0, 255, 0), 1);
-			
       // Use the first face found, and set it's offset.
       face = faces[0];
       face.x += bodies[i].x;
@@ -130,7 +127,7 @@ Tracker::Track(Tracker *tracker, Rect frame_rect, Rect face_rect)
     // Centered
     if (tracker->ot_center_count++ == tracker->ot_max_center_count) {
       tracker->ot_center_count = 0;
-   		tracker->ot_launcher->Fire(); 
+   		tracker->ot_launcher->Fire();
 		}
   } else {
     int msec = 0;

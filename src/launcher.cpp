@@ -106,7 +106,7 @@ Launcher::RunCommand(Launcher *launcher)
   }
 }
 
-void 
+void
 Launcher::TimerDone(uv_timer_t *timer)
 {
   Launcher *launcher = (Launcher *) timer->data;
@@ -177,7 +177,6 @@ Launcher::Move(LauncherDirection direction, int duration)
     ol_direction = direction;
     ol_duration = duration;
     ol_command = LauncherCommand::MOVE;
-    
     Launcher::RunCommand(this);
   }
 
