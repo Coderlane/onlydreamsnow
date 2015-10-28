@@ -1,5 +1,10 @@
-
-
+/**
+ * @file launcher.h
+ * @brief
+ * @author Travis Lane
+ * @version 0.0.1
+ * @date 2015-10-27
+ */
 
 #ifndef LAUNCHER_H
 #define LAUNCHER_H
@@ -22,14 +27,7 @@ enum class LauncherDirection
   RIGHT = ML_RIGHT
 };
 
-enum class LauncherCommand
-{
-  STOP,
-  RESET,
-  FIRE,
-  MOVE,
-  IDLE
-};
+enum class LauncherCommand { STOP, RESET, FIRE, MOVE, IDLE };
 
 class Launcher
 {

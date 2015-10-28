@@ -1,3 +1,10 @@
+/**
+ * @file tracker.cpp
+ * @brief
+ * @author Travis Lane
+ * @version 0.0.1
+ * @date 2015-10-27
+ */
 
 #include <opencv2/contrib/contrib.hpp>
 #include <opencv2/highgui/highgui.hpp>

@@ -1,3 +1,10 @@
+/**
+ * @file tracker.h
+ * @brief
+ * @author Travis Lane
+ * @version 0.0.1
+ * @date 2015-10-27
+ */
 
 #ifndef TRACKER_H
 #define TRACKER_H

@@ -1,4 +1,11 @@
 
+/**
+ * @file onlydreamsnow.cpp
+ * @brief
+ * @author Travis Lane
+ * @version 0.0.1
+ * @date 2015-10-27
+ */
 #include <string>
 #include <syslog.h>
 #include <confuse.h>

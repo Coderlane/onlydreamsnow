@@ -1,9 +1,9 @@
 /**
- * @file main.c
- * @brief Generic daemon
+ * @file main.cpp
+ * @brief
  * @author Travis Lane
- * @version 0.1.0
- * @date 2015-02-02
+ * @version 0.0.1
+ * @date 2015-10-27
  */
 
 #include <iostream>
