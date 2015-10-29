@@ -6,6 +6,28 @@
 
 using namespace std;
 
+#include "commands.h"
+
+void
+StopCommand::Run()
+{
+}
+
+void
+ResetCommand::Run()
+{
+}
+
+void
+FireCommand::Run()
+{
+}
+
+void
+MoveCommand::Run()
+{
+}
+
 Launcher::Launcher(ml_launcher_t *launcher)
 {
   int rv;
@@ -131,11 +153,8 @@ Launcher::Fire()
 {
   uv_mutex_lock(&ol_mutex);
 
-  ol_command = LauncherCommand::FIRE;
 
-  if(ol_idle) {
-		Launcher::RunCommand(this);
-  }
+  Launcher::RunCommand(this);
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -145,11 +164,7 @@ Launcher::Reset()
 {
   uv_mutex_lock(&ol_mutex);
 
-  ol_command = LauncherCommand::RESET;
-
-  if(ol_idle) {
-    Launcher::RunCommand(this);
-  }
+  StartCommand(ResetCommand());
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -159,11 +174,7 @@ Launcher::Stop()
 {
   uv_mutex_lock(&ol_mutex);
 
-  ol_command = LauncherCommand::STOP;
-
-  if(ol_idle) {
-		Launcher::RunCommand(this);
-  }
+  StartCommand(StopCommand());
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -173,12 +184,7 @@ Launcher::Move(LauncherDirection direction, int duration)
 {
   uv_mutex_lock(&ol_mutex);
 
-  if(ol_idle) {
-    ol_direction = direction;
-    ol_duration = duration;
-    ol_command = LauncherCommand::MOVE;
-    Launcher::RunCommand(this);
-  }
 
+  EnqueueCommand
   uv_mutex_unlock(&ol_mutex);
 }
