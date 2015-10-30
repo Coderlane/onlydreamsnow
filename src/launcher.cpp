@@ -149,12 +149,25 @@ Launcher::TimerDone(uv_timer_t *timer)
 }
 
 void
+Launcher::StartCommand(LauncherCommand *command)
+{
+ 
+
+}
+
+void
+Launcher::EnqueueCommand(LauncherCommand *command)
+{
+
+  
+}
+
+void
 Launcher::Fire()
 {
   uv_mutex_lock(&ol_mutex);
 
-
-  Launcher::RunCommand(this);
+  StartCommand(FireCommand());
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -180,11 +193,11 @@ Launcher::Stop()
 }
 
 void
-Launcher::Move(LauncherDirection direction, int duration)
+Launcher::Move(LauncherDirection direction, MilliDurationType duration)
 {
   uv_mutex_lock(&ol_mutex);
 
+  EnqueueCommand(MoveCommand(direction, duration));
 
-  EnqueueCommand
   uv_mutex_unlock(&ol_mutex);
 }

@@ -37,31 +37,39 @@ class LauncherCommand
 {
   friend class Launcher;
 protected:
-  LauncherCommand(LauncherCommandType type);
+  LauncherCommand(LauncherCommandType type, bool interruptable) {
+    lc_command_type = type;
+    lc_interruptable = interruptable;
+  }
+
   LauncherCommandType lc_command_type;
+  bool lc_interruptable;
 
 public:
   virtual MilliDurationType Run() = 0;
+  bool Interruptable() {
+    return lc_interruptable;
+  }
 }
 
 class StopCommand : LauncherCommand
 {
 public:
-  StopCommand() : LauncherCommand(LauncherCommandType::STOP){};
+  StopCommand() : LauncherCommand(LauncherCommandType::STOP, false){};
   MilliDurationType Run();
 }
 
 class ResetCommand : LauncherCommand
 {
 public:
-  ResetCommand() : LauncherCommand(LauncherCommandType::RESET){};
+  ResetCommand() : LauncherCommand(LauncherCommandType::RESET, false){};
   MilliDurationType Run();
 }
 
 class FireCommand : LauncherCommand
 {
 public:
-  FireCommand() : LauncherCommand(LauncherCommandType::FIRE){};
+  FireCommand() : LauncherCommand(LauncherCommandType::FIRE, false){};
   MilliDurationType Run();
 }
 
@@ -102,15 +110,16 @@ private:
   uv_timer_t ol_heartbeat;
 
   bool ol_running = false;
+  bool ol_interruptable = true;
   bool ol_idle = true;
 
   static void Heartbeat(uv_timer_t *timer);
   static void TimerDone(uv_timer_t *timer);
   static MilliDurationType Run(void *arg);
-  void StartCommand(const LauncherCommand &command);
-  void EnqueueCommand(const LauncherCommand &command);
+  void StartCommand(LauncherCommand *command);
+  void EnqueueCommand(LauncherCommand *command);
 
-  std::queue<LauncherCommand> ol_commands;
+  LauncherCommand *ol_next_command = nullptr;
 
 public:
   Launcher(ml_launcher_t *launcher);
@@ -119,7 +128,7 @@ public:
   void Fire();
   void Reset();
   void Stop();
-  void Move(LauncherDirection direction, int msec_duration);
+  void Move(LauncherDirection direction, MilliDurationType msec_duration);
 };
 
 
