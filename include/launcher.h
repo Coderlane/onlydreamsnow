@@ -50,42 +50,45 @@ public:
   bool Interruptable() {
     return lc_interruptable;
   }
-}
+};
 
 class StopCommand : LauncherCommand
 {
 public:
   StopCommand() : LauncherCommand(LauncherCommandType::STOP, false){};
   MilliDurationType Run();
-}
+};
 
 class ResetCommand : LauncherCommand
 {
 public:
   ResetCommand() : LauncherCommand(LauncherCommandType::RESET, false){};
   MilliDurationType Run();
-}
+};
 
 class FireCommand : LauncherCommand
 {
 public:
   FireCommand() : LauncherCommand(LauncherCommandType::FIRE, false){};
   MilliDurationType Run();
-}
+};
 
 class MoveCommand : LauncherCommand
 {
 public:
   MoveCommand(LauncherDirectionType direction, MilliDurationType duration)
-      : LauncherCommand(LauncherCommandType::FIRE), mc_direction(direction),
-        mc_duration(duration){};
+      : LauncherCommand(LauncherCommandType::FIRE, true)
+  {
+        mc_direction = direction;
+        mc_duration = duration;
+  }
 
   MilliDurationType Run();
 
 private:
   LauncherDirectionType mc_direction;
   MilliDurationType mc_duration;
-}
+};
 
 struct LauncherException : std::exception {
   char const *what() const throw();
@@ -128,7 +131,7 @@ public:
   void Fire();
   void Reset();
   void Stop();
-  void Move(LauncherDirection direction, MilliDurationType msec_duration);
+  void Move(LauncherDirectionType direction, MilliDurationType msec_duration);
 };
 
 

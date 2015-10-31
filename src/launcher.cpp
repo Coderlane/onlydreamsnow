@@ -6,26 +6,28 @@
 
 using namespace std;
 
-#include "commands.h"
-
-void
+MilliDurationType
 StopCommand::Run()
 {
+  return MilliDurationType(100);
 }
 
-void
+MilliDurationType
 ResetCommand::Run()
 {
+  return MilliDurationType(5000);
 }
 
-void
+MilliDurationType
 FireCommand::Run()
 {
+  return MilliDurationType(5000);
 }
 
-void
+MilliDurationType
 MoveCommand::Run()
 {
+  return mc_duration;
 }
 
 Launcher::Launcher(ml_launcher_t *launcher)
