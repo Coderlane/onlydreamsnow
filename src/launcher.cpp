@@ -6,28 +6,24 @@
 
 using namespace std;
 
-MilliDurationType
+void
 StopCommand::Run()
 {
-  return MilliDurationType(100);
 }
 
-MilliDurationType
+void
 ResetCommand::Run()
 {
-  return MilliDurationType(5000);
 }
 
-MilliDurationType
+void
 FireCommand::Run()
 {
-  return MilliDurationType(5000);
 }
 
-MilliDurationType
+void
 MoveCommand::Run()
 {
-  return mc_duration;
 }
 
 Launcher::Launcher(ml_launcher_t *launcher)
@@ -168,8 +164,9 @@ void
 Launcher::Fire()
 {
   uv_mutex_lock(&ol_mutex);
+  FireCommand command;
 
-  StartCommand(FireCommand());
+  StartCommand(&command);
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -178,8 +175,9 @@ void
 Launcher::Reset()
 {
   uv_mutex_lock(&ol_mutex);
+  ResetCommand command;
 
-  StartCommand(ResetCommand());
+  StartCommand(&command);
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -188,8 +186,9 @@ void
 Launcher::Stop()
 {
   uv_mutex_lock(&ol_mutex);
+  StopCommand command;
 
-  StartCommand(StopCommand());
+  StartCommand(&command);
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -198,8 +197,9 @@ void
 Launcher::Move(LauncherDirection direction, MilliDurationType duration)
 {
   uv_mutex_lock(&ol_mutex);
+  MoveCommand command(direction, duration);
 
-  EnqueueCommand(MoveCommand(direction, duration));
+  EnqueueCommand(&command);
 
   uv_mutex_unlock(&ol_mutex);
 }
