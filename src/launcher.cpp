@@ -60,19 +60,18 @@ Launcher::~Launcher()
   }
 }
 
-void Launcher::Heartbeat(uv_timer_t *) {
+void Launcher::Heartbeat(uv_timer_t *, int) {
 	//cerr << "Heartbeat.\n";
 }
 
 void Launcher::Run(void *arg)
 {
-  uv_loop_t loop;
+  uv_loop_t *loop = uv_loop_new();
   Launcher *launcher = static_cast<Launcher *>(arg);
 
-  uv_loop_init(&loop);
-  uv_timer_init(&loop, &(launcher->ol_timer));
-	uv_timer_init(&loop, &(launcher->ol_heartbeat));
-  uv_async_init(&loop, &(launcher->ol_async), NULL);
+  uv_timer_init(loop, &(launcher->ol_timer));
+	uv_timer_init(loop, &(launcher->ol_heartbeat));
+  uv_async_init(loop, &(launcher->ol_async), NULL);
 
 	uv_timer_start(&(launcher->ol_heartbeat), Launcher::Heartbeat, 10, 10);
 
@@ -80,54 +79,14 @@ void Launcher::Run(void *arg)
 
   while(launcher->ol_running) {
     // Run the launcher loop.
-    uv_run(&loop, UV_RUN_ONCE);
+    uv_run(loop, UV_RUN_ONCE);
   }
+
+  uv_loop_delete(loop);
 }
 
 void
-Launcher::RunCommand(Launcher *launcher)
-{
-  int rv = 0;
-
-  switch(launcher->ol_command) {
-  case LauncherCommand::MOVE:
-		launcher->ol_idle = false;
-		cerr << "Move " << (int) launcher->ol_direction << " for ";
-		cerr << launcher->ol_duration << endl;
-
-    rv = ml_launcher_move(launcher->ol_launcher,
-                          (ml_launcher_direction) launcher->ol_direction);
-
-    uv_timer_start(&(launcher->ol_timer),
-                   Launcher::TimerDone,
-                   launcher->ol_duration, 0);
-    break;
-  case LauncherCommand::FIRE:
-		launcher->ol_idle = false;
-    rv = ml_launcher_fire(launcher->ol_launcher);
-    uv_timer_start(&(launcher->ol_timer), Launcher::TimerDone, 5000, 0);
-    break;
-  case LauncherCommand::STOP:
-    rv = ml_launcher_stop(launcher->ol_launcher);
-    break;
-  case LauncherCommand::RESET:
-    rv = ml_launcher_zero(launcher->ol_launcher);
-    ml_launcher_move_mseconds(launcher->ol_launcher, ML_UP, 400);
-    break;
-  default:
-    rv = 0;
-    break;
-  }
-
-	launcher->ol_command = LauncherCommand::IDLE;
-
-  if(rv != ML_OK) {
-    // Failed to run command.
-  }
-}
-
-void
-Launcher::TimerDone(uv_timer_t *timer)
+Launcher::TimerDone(uv_timer_t *timer, int)
 {
   Launcher *launcher = (Launcher *) timer->data;
 
@@ -137,19 +96,12 @@ Launcher::TimerDone(uv_timer_t *timer)
 
 	launcher->ol_idle = true;
 
-	cerr << "Stop." << endl;
-
-	if(launcher->ol_command != LauncherCommand::IDLE) {
-		RunCommand(launcher);
-	}
-
 	uv_mutex_unlock(&(launcher->ol_mutex));
 }
 
 void
 Launcher::StartCommand(LauncherCommand *command)
 {
- 
 
 }
 
@@ -157,7 +109,6 @@ void
 Launcher::EnqueueCommand(LauncherCommand *command)
 {
 
-  
 }
 
 void
@@ -194,7 +145,7 @@ Launcher::Stop()
 }
 
 void
-Launcher::Move(LauncherDirection direction, MilliDurationType duration)
+Launcher::Move(DirectionType direction, MilliDurationType duration)
 {
   uv_mutex_lock(&ol_mutex);
   MoveCommand command(direction, duration);

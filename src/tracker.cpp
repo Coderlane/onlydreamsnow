@@ -150,12 +150,14 @@ Tracker::Track(Tracker *tracker, Rect frame_rect, Rect face_rect)
       msec = 60;
     }
 
+    MilliDurationType duration(msec);
+
     // Not Centered.
     tracker->ot_center_count = 0;
     if (face_center_x > center_x) {
-      tracker->ot_launcher->Move(LauncherDirection::RIGHT, msec);
+      tracker->ot_launcher->Move(DirectionType::RIGHT, duration);
     } else {
-      tracker->ot_launcher->Move(LauncherDirection::LEFT, msec);
+      tracker->ot_launcher->Move(DirectionType::LEFT, duration);
     }
   }
 }

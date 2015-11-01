@@ -130,9 +130,9 @@ private:
   bool ol_interruptable = true;
   bool ol_idle = true;
 
-  static void Heartbeat(uv_timer_t *timer);
-  static void TimerDone(uv_timer_t *timer);
-  static MilliDurationType Run(void *arg);
+  static void Heartbeat(uv_timer_t *timer, int status);
+  static void TimerDone(uv_timer_t *timer, int status);
+  static void Run(void *arg);
   void StartCommand(LauncherCommand *command);
   void EnqueueCommand(LauncherCommand *command);
 
