@@ -102,13 +102,21 @@ Launcher::TimerDone(uv_timer_t *timer, int)
 void
 Launcher::StartCommand(LauncherCommand *command)
 {
+	uv_mutex_lock(&(launcher->ol_mutex));
 
+	launcher->ol_idle = false;
+
+	uv_mutex_unlock(&(launcher->ol_mutex));
 }
 
 void
 Launcher::EnqueueCommand(LauncherCommand *command)
 {
+	uv_mutex_lock(&(launcher->ol_mutex));
+  
+  launcher->ol_next_command = command;
 
+	uv_mutex_unlock(&(launcher->ol_mutex));
 }
 
 void
