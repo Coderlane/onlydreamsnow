@@ -6,26 +6,6 @@
 
 using namespace std;
 
-void
-StopCommand::Run()
-{
-}
-
-void
-ResetCommand::Run()
-{
-}
-
-void
-FireCommand::Run()
-{
-}
-
-void
-MoveCommand::Run()
-{
-}
-
 Launcher::Launcher(ml_launcher_t *launcher)
 {
   int rv;
@@ -100,32 +80,10 @@ Launcher::TimerDone(uv_timer_t *timer, int)
 }
 
 void
-Launcher::StartCommand(LauncherCommand *command)
-{
-	uv_mutex_lock(&(launcher->ol_mutex));
-
-	launcher->ol_idle = false;
-
-	uv_mutex_unlock(&(launcher->ol_mutex));
-}
-
-void
-Launcher::EnqueueCommand(LauncherCommand *command)
-{
-	uv_mutex_lock(&(launcher->ol_mutex));
-  
-  launcher->ol_next_command = command;
-
-	uv_mutex_unlock(&(launcher->ol_mutex));
-}
-
-void
 Launcher::Fire()
 {
   uv_mutex_lock(&ol_mutex);
-  FireCommand command;
-
-  StartCommand(&command);
+  ol_interruptable = false;
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -134,9 +92,7 @@ void
 Launcher::Reset()
 {
   uv_mutex_lock(&ol_mutex);
-  ResetCommand command;
-
-  StartCommand(&command);
+  ol_interruptable = false;
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -145,9 +101,8 @@ void
 Launcher::Stop()
 {
   uv_mutex_lock(&ol_mutex);
-  StopCommand command;
+  ol_interruptable = false;
 
-  StartCommand(&command);
 
   uv_mutex_unlock(&ol_mutex);
 }
@@ -156,9 +111,7 @@ void
 Launcher::Move(DirectionType direction, MilliDurationType duration)
 {
   uv_mutex_lock(&ol_mutex);
-  MoveCommand command(direction, duration);
-
-  EnqueueCommand(&command);
+  ol_interruptable = true;
 
   uv_mutex_unlock(&ol_mutex);
 }

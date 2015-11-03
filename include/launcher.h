@@ -28,86 +28,7 @@ enum class DirectionType {
   RIGHT = ML_RIGHT
 };
 
-typedef std::chrono::duration<int, std::milli> MilliDurationType;
-
 enum class CommandType { STOP, RESET, FIRE, MOVE, IDLE };
-
-class LauncherCommand
-{
-  friend class Launcher;
-protected:
-  LauncherCommand(CommandType type, MilliDurationType duration,
-                  bool interruptable = false)
-  {
-    lc_command_type = type;
-    lc_duration = duration;
-    lc_interruptable = interruptable;
-  }
-
-  MilliDurationType lc_duration;
-  CommandType lc_command_type;
-  bool lc_interruptable;
-
-public:
-  virtual void Run() = 0;
-
-  /**
-   * @brief Check to see if the command is interruptable or not.
-   *
-   * @return True/False can the command be interrupted.
-   */
-  bool IsInterruptable() {
-    return lc_interruptable;
-  }
-
-  /**
-   * @brief Get how long the command should run for.
-   *
-   * @return How long the command should take to run.
-   */
-  MilliDurationType GetDuration() {
-    return lc_duration;
-  }
-};
-
-class StopCommand : public LauncherCommand
-{
-public:
-  StopCommand()
-      : LauncherCommand(CommandType::STOP, MilliDurationType(100)){};
-  virtual void Run();
-};
-
-class ResetCommand : public LauncherCommand
-{
-public:
-  ResetCommand()
-      : LauncherCommand(CommandType::RESET, MilliDurationType(10000)){};
-  virtual void Run();
-};
-
-class FireCommand : public LauncherCommand
-{
-public:
-  FireCommand()
-      : LauncherCommand(CommandType::FIRE, MilliDurationType(5000)){};
-  virtual void Run();
-};
-
-class MoveCommand : public LauncherCommand
-{
-public:
-  MoveCommand(DirectionType direction, MilliDurationType duration)
-      : LauncherCommand(CommandType::FIRE, duration, true)
-  {
-    mc_direction = direction;
-  }
-
-  virtual void Run();
-
-private:
-  DirectionType mc_direction;
-};
 
 struct LauncherException : std::exception {
   char const *what() const throw();
@@ -133,8 +54,6 @@ private:
   static void Heartbeat(uv_timer_t *timer, int status);
   static void TimerDone(uv_timer_t *timer, int status);
   static void Run(void *arg);
-  void StartCommand(LauncherCommand *command);
-  void EnqueueCommand(LauncherCommand *command);
 
   LauncherCommand *ol_next_command = nullptr;
 
@@ -147,7 +66,7 @@ public:
   void Fire();
   void Reset();
   void Stop();
-  void Move(DirectionType direction, MilliDurationType msec_duration);
+  void Move(DirectionType direction, int msec_duration);
 };
 
 #endif /* LAUNCHER_H */
