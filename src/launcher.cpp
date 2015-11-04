@@ -108,7 +108,7 @@ Launcher::Stop()
 }
 
 void
-Launcher::Move(DirectionType direction, MilliDurationType duration)
+Launcher::Move(DirectionType direction, int duration)
 {
   uv_mutex_lock(&ol_mutex);
   ol_interruptable = true;
