@@ -55,13 +55,17 @@ private:
   static void TimerDone(uv_timer_t *timer, int status);
   static void Run(void *arg);
 
-  LauncherCommand *ol_next_command = nullptr;
+  CommandType ol_next_command = CommandType::IDLE;
+  DirectionType ol_next_direction = DirectionType::UP;
+  int ol_next_duration = 0;
+
+  CommandType ol_current_command = CommandType::IDLE;
+  DirectionType ol_current_direction = DirectionType::UP;
+  int ol_current_duration = 0;
 
 public:
   Launcher(ml_launcher_t *launcher);
   ~Launcher();
-
-  //void Run(void *arg);
 
   void Fire();
   void Reset();
