@@ -80,6 +80,35 @@ Launcher::TimerDone(uv_timer_t *timer, int)
 }
 
 void
+Launcher::EnqueueCommand(CommandType command, DirectionType direction,
+                         int duration)
+{
+  uv_mutex_lock(&ol_mutex);
+  if (ol_idle) {
+    StartCommandImpl(command, direction, duration);
+  }
+
+
+  uv_mutex_unlock(&ol_mutex);
+}
+
+void
+Launcher::StartCommand(CommandType command, DirectionType direction,
+                         int duration)
+{
+  uv_mutex_lock(&ol_mutex);
+  StartCommandImpl(command, direction, duration);
+  uv_mutex_unlock(&ol_mutex);
+}
+
+void
+Launcher::StartCommandImpl(CommandType command, DirectionType direction,
+                         int duration)
+{
+
+}
+
+void
 Launcher::Fire()
 {
   uv_mutex_lock(&ol_mutex);

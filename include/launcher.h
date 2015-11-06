@@ -55,6 +55,15 @@ private:
   static void TimerDone(uv_timer_t *timer, int status);
   static void Run(void *arg);
 
+  void EnqueueCommand(CommandType command,
+                      DirectionType direction = DirectionType::UP,
+                      int duration = 0);
+
+  void StartCommand(CommandType command, DirectionType direction, int duration);
+
+  void StartCommandImpl(CommandType command, DirectionType direction,
+                        int duration);
+
   CommandType ol_next_command = CommandType::IDLE;
   DirectionType ol_next_direction = DirectionType::UP;
   int ol_next_duration = 0;
