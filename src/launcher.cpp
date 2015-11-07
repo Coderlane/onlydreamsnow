@@ -105,7 +105,23 @@ void
 Launcher::StartCommandImpl(CommandType command, DirectionType direction,
                          int duration)
 {
-
+  switch(command) {
+    case CommandType::STOP:
+      ml_launcher_stop(ol_launcher);
+      break;
+    case CommandType::RESET:
+      // TODO: Implement...
+      break;
+    case CommandType::FIRE:
+      ml_launcher_fire(ol_launcher);
+      break;
+    case CommandType::MOVE:
+      ml_launcher_move(ol_launcher, (ml_launcher_direction)direction);
+      // TODO: start timer.
+      break;
+     default:
+       break;
+  }
 }
 
 void
