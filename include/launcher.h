@@ -17,7 +17,6 @@
 #include <uv.h>
 
 class Launcher;
-class LauncherCommand;
 
 /* Launcher Commands */
 
@@ -33,6 +32,27 @@ enum class CommandType { STOP, RESET, FIRE, MOVE, IDLE };
 struct LauncherException : std::exception {
   char const *what() const throw();
 };
+
+class LauncherCommand
+{
+};
+
+class CommandMove : public LauncherCommand
+{
+};
+
+class CommandStop : public LauncherCommand
+{
+};
+
+class CommandReset : public LauncherCommand
+{
+};
+
+class CommandFire : public LauncherCommand
+{
+};
+
 
 /* Launcher */
 
