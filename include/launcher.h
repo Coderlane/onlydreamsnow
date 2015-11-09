@@ -35,24 +35,66 @@ struct LauncherException : std::exception {
 
 class LauncherCommand
 {
+public:
+  LauncherCommand(ml_launcher_t *launcher, CommandType type,
+                  bool interruptable = false)
+  {
+    lc_launcher = launcher;
+    lc_type = type;
+    lc_interruptable = interruptable;
+  }
+
+  bool
+  IsInterruptable()
+  {
+    return lc_interruptable;
+  }
+
+  CommandType
+  GetType()
+  {
+    return lc_type;
+  }
+
+protected:
+  ml_launcher_t *lc_launcher;
+  CommandType lc_type;
+  bool lc_interruptable;
 };
 
 class CommandMove : public LauncherCommand
 {
+public:
+  CommandMove(ml_launcher_t *launcher, DirectionType direction, int duration)
+      : LauncherCommand(launcher, CommandType::MOVE, true)
+  {
+    cm_direction = direction;
+    cm_duration = duration;
+  };
+
+private:
+  DirectionType cm_direction;
+  int cm_duration;
 };
 
 class CommandStop : public LauncherCommand
 {
+public:
+  CommandStop(ml_launcher_t *launcher)
+      : LauncherCommand(launcher, CommandType::STOP){};
 };
 
 class CommandReset : public LauncherCommand
 {
+  CommandReset(ml_launcher_t *launcher)
+      : LauncherCommand(launcher, CommandType::STOP){};
 };
 
 class CommandFire : public LauncherCommand
 {
+  CommandFire(ml_launcher_t *launcher)
+      : LauncherCommand(launcher, CommandType::STOP){};
 };
-
 
 /* Launcher */
 
