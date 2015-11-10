@@ -17,8 +17,7 @@
 #include <uv.h>
 
 class Launcher;
-
-/* Launcher Commands */
+class LauncherCommand;
 
 enum class DirectionType {
   UP = ML_UP,
@@ -33,10 +32,54 @@ struct LauncherException : std::exception {
   char const *what() const throw();
 };
 
+/* Launcher */
+class Launcher
+{
+private:
+  ml_launcher_t *ol_launcher = NULL;
+
+  uv_thread_t ol_thread;
+  uv_mutex_t ol_mutex;
+  uv_async_t ol_async;
+  uv_timer_t ol_timer;
+  uv_timer_t ol_heartbeat;
+
+  bool ol_running = false;
+  bool ol_interruptable = true;
+  bool ol_idle = true;
+
+  static void Heartbeat(uv_timer_t *timer, int status);
+  static void TimerDone(uv_timer_t *timer, int status);
+  static void RunLoop(void *arg);
+
+
+
+  void EnqueueCommand(CommandType command,
+                      DirectionType direction = DirectionType::UP,
+                      int duration = 0);
+
+  LauncherCommand *ol_command_current = nullptr;
+  LauncherCommand *ol_command_next = nullptr;
+
+public:
+  Launcher(ml_launcher_t *launcher);
+  ~Launcher();
+
+  void Fire();
+  void Reset();
+  void Stop();
+  void Move(DirectionType direction, int msec_duration);
+
+  static void CommandStart(Launcher *launcher, LauncherCommand *command);
+  static void CommandDone(Launcher *launcher, LauncherCommand *command);
+};
+
+
+/* Launcher Commands */
 class LauncherCommand
 {
 public:
-  LauncherCommand(ml_launcher_t *launcher, CommandType type,
+  LauncherCommand(Launcher *launcher, CommandType type,
                   bool interruptable = false)
   {
     lc_launcher = launcher;
@@ -57,15 +100,23 @@ public:
   }
 
 protected:
-  ml_launcher_t *lc_launcher;
+  Launcher *lc_launcher;
   CommandType lc_type;
   bool lc_interruptable;
+
+  virtual void Start() {
+    Launcher::CommandStart(lc_launcher, this);
+  }
+
+  virtual void Done() {
+    Launcher::CommandDone(lc_launcher, this);
+  }
 };
 
 class CommandMove : public LauncherCommand
 {
 public:
-  CommandMove(ml_launcher_t *launcher, DirectionType direction, int duration)
+  CommandMove(Launcher *launcher, DirectionType direction, int duration)
       : LauncherCommand(launcher, CommandType::MOVE, true)
   {
     cm_direction = direction;
@@ -80,68 +131,24 @@ private:
 class CommandStop : public LauncherCommand
 {
 public:
-  CommandStop(ml_launcher_t *launcher)
+  CommandStop(Launcher *launcher)
       : LauncherCommand(launcher, CommandType::STOP){};
 };
 
 class CommandReset : public LauncherCommand
 {
-  CommandReset(ml_launcher_t *launcher)
+  CommandReset(Launcher *launcher)
       : LauncherCommand(launcher, CommandType::STOP){};
 };
 
 class CommandFire : public LauncherCommand
 {
-  CommandFire(ml_launcher_t *launcher)
+  CommandFire(Launcher *launcher)
       : LauncherCommand(launcher, CommandType::STOP){};
 };
 
-/* Launcher */
 
-class Launcher
-{
-private:
-  ml_launcher_t *ol_launcher = NULL;
 
-  uv_thread_t ol_thread;
-  uv_mutex_t ol_mutex;
-  uv_async_t ol_async;
-  uv_timer_t ol_timer;
-  uv_timer_t ol_heartbeat;
 
-  bool ol_running = false;
-  bool ol_interruptable = true;
-  bool ol_idle = true;
-
-  static void Heartbeat(uv_timer_t *timer, int status);
-  static void TimerDone(uv_timer_t *timer, int status);
-  static void Run(void *arg);
-
-  void EnqueueCommand(CommandType command,
-                      DirectionType direction = DirectionType::UP,
-                      int duration = 0);
-
-  void StartCommand(CommandType command, DirectionType direction, int duration);
-
-  void StartCommandImpl(CommandType command, DirectionType direction,
-                        int duration);
-
-  CommandType ol_next_command = CommandType::IDLE;
-  DirectionType ol_next_direction = DirectionType::UP;
-  int ol_next_duration = 0;
-
-  CommandType ol_current_command = CommandType::IDLE;
-  DirectionType ol_current_direction = DirectionType::UP;
-  int ol_current_duration = 0;
-
-public:
-  Launcher(ml_launcher_t *launcher);
-  ~Launcher();
-
-  void Fire();
-  void Reset();
-  void Stop();
-  void Move(DirectionType direction, int msec_duration);
-};
 
 #endif /* LAUNCHER_H */
