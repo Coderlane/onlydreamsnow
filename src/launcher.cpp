@@ -7,6 +7,8 @@
 using namespace std;
 
 Launcher::Launcher(ml_launcher_t *launcher)
+    : ol_command_reset(this), ol_command_move(this), ol_command_stop(this),
+      ol_command_fire(this)
 {
   int rv;
 
@@ -128,4 +130,26 @@ Launcher::Move(DirectionType direction, int duration)
   ol_interruptable = true;
 
   uv_mutex_unlock(&ol_mutex);
+}
+
+void
+Launcher::CommandStart(Launcher *launcher, LauncherCommand *command)
+{
+}
+
+void
+Launcher::CommandDone(Launcher *launcher, LauncherCommand *command)
+{
+}
+
+void
+LauncherCommand::Start()
+{
+  Launcher::CommandStart(lc_launcher, this);
+}
+
+void
+LauncherCommand::Done()
+{
+  Launcher::CommandDone(lc_launcher, this);
 }
