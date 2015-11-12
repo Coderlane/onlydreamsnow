@@ -135,11 +135,13 @@ Launcher::Move(DirectionType direction, int duration)
 void
 Launcher::CommandStart(Launcher *launcher, LauncherCommand *command)
 {
+  launcher->ol_command_current = command;
 }
 
 void
-Launcher::CommandDone(Launcher *launcher, LauncherCommand *command)
+Launcher::CommandDone(Launcher *launcher, LauncherCommand *)
 {
+  launcher->ol_command_current = nullptr;
 }
 
 void

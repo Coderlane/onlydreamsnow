@@ -77,6 +77,14 @@ public:
   CommandMove(Launcher *launcher)
       : LauncherCommand(launcher, CommandType::MOVE, true){};
 
+  void SetDirection(DirectionType direction) {
+    cm_direction = direction;
+  }
+
+  void SetDuration(int duration) {
+    cm_duration = duration;
+  }
+
 private:
   DirectionType cm_direction;
   int cm_duration;
@@ -147,7 +155,7 @@ public:
   void Move(DirectionType direction, int msec_duration);
 
   static void CommandStart(Launcher *launcher, LauncherCommand *command);
-  static void CommandDone(Launcher *launcher, LauncherCommand *command);
+  static void CommandDone(Launcher *launcher, LauncherCommand *);
 };
 
 
