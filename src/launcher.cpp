@@ -7,8 +7,6 @@
 using namespace std;
 
 Launcher::Launcher(ml_launcher_t *launcher)
-    : ol_command_reset(this), ol_command_move(this), ol_command_stop(this),
-      ol_command_fire(this)
 {
   int rv;
 
@@ -45,7 +43,7 @@ Launcher::~Launcher()
 void
 Launcher::Heartbeat(uv_timer_t *, int)
 {
-  // cerr << "Heartbeat.\n";
+  cerr << "Heartbeat.\n";
 }
 
 void
@@ -88,12 +86,44 @@ void
 Launcher::EnqueueCommand(CommandType command, DirectionType direction,
                          int duration)
 {
-  uv_mutex_lock(&ol_mutex);
-  if (ol_idle) {
+  LauncherCommand *command_next = nullptr;
 
+  switch(command) {
+    case CommandType::STOP:
+      command_next = new StopCommand(this);
+      break;
+    case CommandType::RESET:
+      command_next = new ResetCommand(this);
+      break;
+    case CommandType::FIRE:
+      command_next = new FireCommand(this);
+      break;
+    case CommandType::MOVE:
+      command_next = new MoveCommand(this, direction, duration);
+      break;
+    default:
+      throw new LauncherException("Unexpected type in enqueue command.");
+  }
+
+  uv_mutex_lock(&ol_mutex);
+
+  if (ol_idle) {
+    StartCommand(command_next);
+  } else {
+    if (ol_command_next != nullptr) {
+      delete ol_command_next;
+      ol_command_next = command_next;
+    }
   }
 
   uv_mutex_unlock(&ol_mutex);
+}
+
+void
+Launcher::StartCommand(LauncherCommand *command)
+{
+
+
 }
 
 void

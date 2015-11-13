@@ -37,7 +37,6 @@ struct LauncherException : std::exception {
   char const *what() const throw();
 };
 
-
 /* Launcher Commands */
 class LauncherCommand
 {
@@ -77,11 +76,15 @@ public:
   CommandMove(Launcher *launcher)
       : LauncherCommand(launcher, CommandType::MOVE, true){};
 
-  void SetDirection(DirectionType direction) {
+  void
+  SetDirection(DirectionType direction)
+  {
     cm_direction = direction;
   }
 
-  void SetDuration(int duration) {
+  void
+  SetDuration(int duration)
+  {
     cm_duration = duration;
   }
 
@@ -131,19 +134,13 @@ private:
   static void TimerDone(uv_timer_t *timer, int status);
   static void RunLoop(void *arg);
 
-
-
   void EnqueueCommand(CommandType command,
                       DirectionType direction = DirectionType::UP,
                       int duration = 0);
+  void StartCommand(LauncherCommand *command);
 
   LauncherCommand *ol_command_current = nullptr;
   LauncherCommand *ol_command_next = nullptr;
-
-  CommandReset ol_command_reset;
-  CommandMove ol_command_move;
-  CommandStop ol_command_stop;
-  CommandFire ol_command_fire;
 
 public:
   Launcher(ml_launcher_t *launcher);
@@ -157,7 +154,5 @@ public:
   static void CommandStart(Launcher *launcher, LauncherCommand *command);
   static void CommandDone(Launcher *launcher, LauncherCommand *);
 };
-
-
 
 #endif /* LAUNCHER_H */
