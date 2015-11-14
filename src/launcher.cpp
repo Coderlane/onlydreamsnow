@@ -88,21 +88,21 @@ Launcher::EnqueueCommand(CommandType command, DirectionType direction,
 {
   LauncherCommand *command_next = nullptr;
 
-  switch(command) {
-    case CommandType::STOP:
-      command_next = new StopCommand(this);
-      break;
-    case CommandType::RESET:
-      command_next = new ResetCommand(this);
-      break;
-    case CommandType::FIRE:
-      command_next = new FireCommand(this);
-      break;
-    case CommandType::MOVE:
-      command_next = new MoveCommand(this, direction, duration);
-      break;
-    default:
-      throw new LauncherException("Unexpected type in enqueue command.");
+  switch (command) {
+  case CommandType::STOP:
+    command_next = new CommandStop(this);
+    break;
+  case CommandType::RESET:
+    command_next = new CommandReset(this);
+    break;
+  case CommandType::FIRE:
+    command_next = new CommandFire(this);
+    break;
+  case CommandType::MOVE:
+    command_next = new CommandMove(this, direction, duration);
+    break;
+  default:
+    throw std::exception();
   }
 
   uv_mutex_lock(&ol_mutex);

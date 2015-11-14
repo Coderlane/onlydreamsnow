@@ -33,7 +33,7 @@ enum class DirectionType {
 
 enum class CommandType { STOP, RESET, FIRE, MOVE, IDLE };
 
-struct LauncherException : std::exception {
+struct LauncherException : public std::exception {
   char const *what() const throw();
 };
 
@@ -73,8 +73,12 @@ protected:
 class CommandMove : public LauncherCommand
 {
 public:
-  CommandMove(Launcher *launcher)
-      : LauncherCommand(launcher, CommandType::MOVE, true){};
+  CommandMove(Launcher *launcher, DirectionType direction, int duration)
+      : LauncherCommand(launcher, CommandType::MOVE, true)
+  {
+    cm_direction = direction;
+    cm_duration = duration;
+  };
 
   void
   SetDirection(DirectionType direction)
