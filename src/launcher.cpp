@@ -1,5 +1,5 @@
 
-
+#include <cassert>
 #include <iostream>
 
 #include "launcher.h"
@@ -159,25 +159,32 @@ Launcher::Move(DirectionType direction, int duration)
 }
 
 void
-Launcher::CommandStart(Launcher *launcher, LauncherCommand *command)
+Launcher::CommandStart(Launcher *launcher)
 {
-  launcher->ol_command_current = command;
+  uv_mutex_lock(&launcher->ol_mutex);
+  assert(launcher->ol_idle == false);
+  launcher->ol_running = true;
+  uv_mutex_unlock(&launcher->ol_mutex);
 }
 
 void
-Launcher::CommandDone(Launcher *launcher, LauncherCommand *)
+Launcher::CommandDone(Launcher *launcher)
 {
-  launcher->ol_command_current = nullptr;
+  uv_mutex_lock(&launcher->ol_mutex);
+  assert(launcher->ol_running == true);
+  launcher->ol_running = false;
+  launcher->ol_idle = true;
+  uv_mutex_unlock(&launcher->ol_mutex);
 }
 
 void
 LauncherCommand::Start()
 {
-  Launcher::CommandStart(lc_launcher, this);
+  Launcher::CommandStart(lc_launcher);
 }
 
 void
 LauncherCommand::Done()
 {
-  Launcher::CommandDone(lc_launcher, this);
+  Launcher::CommandDone(lc_launcher);
 }

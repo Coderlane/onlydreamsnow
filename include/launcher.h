@@ -155,8 +155,8 @@ public:
   void Stop();
   void Move(DirectionType direction, int msec_duration);
 
-  static void CommandStart(Launcher *launcher, LauncherCommand *command);
-  static void CommandDone(Launcher *launcher, LauncherCommand *);
+  static void CommandStart(Launcher *launcher);
+  static void CommandDone(Launcher *launcher);
 };
 
 #endif /* LAUNCHER_H */
