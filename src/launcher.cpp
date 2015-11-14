@@ -130,8 +130,7 @@ void
 Launcher::Fire()
 {
   uv_mutex_lock(&ol_mutex);
-  ol_interruptable = false;
-
+  EnqueueCommand(CommandType::FIRE);
   uv_mutex_unlock(&ol_mutex);
 }
 
@@ -139,8 +138,7 @@ void
 Launcher::Reset()
 {
   uv_mutex_lock(&ol_mutex);
-  ol_interruptable = false;
-
+  EnqueueCommand(CommandType::RESET);
   uv_mutex_unlock(&ol_mutex);
 }
 
@@ -148,8 +146,7 @@ void
 Launcher::Stop()
 {
   uv_mutex_lock(&ol_mutex);
-  ol_interruptable = false;
-
+  EnqueueCommand(CommandType::STOP);
   uv_mutex_unlock(&ol_mutex);
 }
 
@@ -157,8 +154,7 @@ void
 Launcher::Move(DirectionType direction, int duration)
 {
   uv_mutex_lock(&ol_mutex);
-  ol_interruptable = true;
-
+  EnqueueCommand(CommandType::MOVE, direction, duration);
   uv_mutex_unlock(&ol_mutex);
 }
 
